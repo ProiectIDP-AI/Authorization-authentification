@@ -1,4 +1,4 @@
-version: "3"
+version: "3.8"
 
 services:
   redis:
@@ -12,7 +12,7 @@ services:
       - redis_data:/data
 
   io:
-    image: andreiionut1411/io:latest
+    image: io-flask
     container_name: io
     networks:
       - backend
@@ -27,9 +27,9 @@ services:
       - REDIS_PORT=6379
   
 
-  flask:
-    build: .
-    container_name: flask
+  auth:
+    image: auth
+    container_name: auth
     networks:
       - backend
     ports:

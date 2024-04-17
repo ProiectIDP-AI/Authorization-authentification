@@ -39,7 +39,9 @@ def login_company():
         if company_details['email'] == email and check_password_hash(company_details['password'], password):
             # Create a JWT token
             token = jwt.encode({
+                'id': id,  # The id of the company is stored in the token
                 'email': email,
+                'type': 'company',  # The type of the user is 'company
                 'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
             }, SECRET_KEY, algorithm='HS256')
             return jsonify({'token': token})
@@ -77,7 +79,9 @@ def login_admin():
     if admin_details and check_password_hash(admin_details['password'], password):
         # Create a JWT token
         token = jwt.encode({
+            'id': admin_details['id'],  # The id of the admin is '0
             'name': name,
+            'type': 'admin',  # The type of the user is 'admin'
             'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 30 minutes
         }, SECRET_KEY, algorithm='HS256')
         return jsonify({'token': token})
@@ -113,11 +117,39 @@ def login_employee():
         if employee_details['email'] == email and check_password_hash(employee_details['password'], password):
             # Create a JWT token
             token = jwt.encode({
+                'id': id,  # The id of the employee is stored in the token
                 'email': email,
+                'type': 'employee',  # The type of the user is 'employee
                 'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
             }, SECRET_KEY, algorithm='HS256')
             return jsonify({'token': token})
     return jsonify({'message': 'Invalid email or password'}), 401
+
+@app.route("/auth/decode_token", methods=["POST"])
+def decode_token():
+	payload = request.get_json()
+	client_type = payload['client_type']
+	if payload['id'] == 'None':
+		id = 'None'
+	else:
+		id = payload['id']
+	token = None
+	if 'Authorization' in request.headers:
+		token = request.headers['Authorization'].split(" ")[1]
+	if not token:
+		return jsonify({'message': 'Token is missing'}), 401
+	try:
+		data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+		if id == 'None':
+			if data['type'] != client_type:
+				return jsonify({'message': 'Unauthorized client type'}), 401
+		else:
+			if data['type'] != client_type or data['id'] != id:
+				return jsonify({'message': 'Unauthorized client type'}), 401
+		return jsonify(data), 200
+	except:
+		return jsonify({'message': 'Token is invalid', 'token': token}), 401
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=6000, debug=True)
