@@ -41,6 +41,21 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
 
+  bl:
+    image: bl
+    container_name: bl
+    networks:
+      - backend
+    ports:
+      - "7000:7000"
+    depends_on:
+      - redis
+      - auth
+      - io
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
   redisinsight:
     image: redislabs/redisinsight:latest
     container_name: redisinsight
