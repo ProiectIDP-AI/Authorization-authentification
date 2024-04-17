@@ -9,3 +9,4 @@ redis==5.0.1
 Werkzeug==3.0.1
 pyjwt==2.8.0
 flask_jwt_extended==4.6.0
+requests==2.26.0
