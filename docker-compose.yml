@@ -28,7 +28,7 @@ services:
   
 
   auth:
-    image: auth
+    image: andradacojocaru25/auth:latest
     container_name: auth
     networks:
       - backend
