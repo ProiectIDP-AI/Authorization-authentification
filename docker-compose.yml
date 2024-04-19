@@ -28,7 +28,7 @@ services:
   
 
   auth:
-    image: andradacojocaru25/auth:latest
+    image: andradacojocaru25/authorization-authentification:latest
     container_name: auth
     networks:
       - backend
@@ -106,6 +106,8 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - redis
   

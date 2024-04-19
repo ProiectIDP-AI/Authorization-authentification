@@ -16,6 +16,8 @@ SECRET_KEY = 'ratonii_maleficius'
 @app.route('/auth/register_company', methods=['PUT'])
 def register_company():
 	data = request.get_json()
+	if 'email' not in data or 'password' not in data:
+		return jsonify({'message': 'Invalid parameters'}), 401
 	email = data.get('email')
 	company_ids = r.smembers('comp_ids')  # Get all company ids
 	if 'password' in data:
@@ -29,6 +31,8 @@ def register_company():
 @app.route('/auth/login_company', methods=['POST'])
 def login_company():
 	data = request.get_json()
+	if 'email' not in data or 'password' not in data:
+		return jsonify({'message': 'Invalid parameters'}), 401
 	email = data.get('email')
 	password = data.get('password')
 
@@ -53,11 +57,12 @@ def login_company():
 def register_admin():
 	if r.hexists('admin', 'password'):
 		return jsonify({'message': 'Not allowed'}), 403
+	if 'name' not in data or 'password' not in data:
+		return jsonify({'message': 'Invalid parameters'}), 401
 
 	data = request.get_json()
 	name = data.get('name')
-	if 'password' in data:
-		data['password'] = generate_password_hash(data['password'], method='pbkdf2:sha256')
+	data['password'] = generate_password_hash(data['password'], method='pbkdf2:sha256')
 
 	if r.hget('admin', 'name') == 'admin':  # If the name matches, update the admin
 		r.hset('admin', mapping={
@@ -71,6 +76,8 @@ def register_admin():
 @app.route('/auth/login_admin', methods=['POST'])
 def login_admin():
 	data = request.get_json()
+	if 'name' not in data or 'password' not in data:
+		return jsonify({'message': 'Invalid parameters'}), 401
 	name = data.get('name')
 	password = data.get('password')
 
@@ -93,10 +100,11 @@ def login_admin():
 @app.route('/auth/register_employee', methods=['PUT'])
 def register_employee():
 	data = request.get_json()
+	if 'email' not in data or 'password' not in data:
+		return jsonify({'message': 'Invalid parameters'}), 401
 	email = data.get('email')
-	employee_ids = r.smembers('emp_ids')  # Get all employee ids
-	if 'password' in data:
-		data['password'] = generate_password_hash(data['password'], method='pbkdf2:sha256')
+	employee_ids = r.smembers('emp_ids') 
+	data['password'] = generate_password_hash(data['password'], method='pbkdf2:sha256')
 
 	for id in employee_ids:
 		if r.hget(id, 'email') == email:  # If the email matches, update the employee
@@ -107,6 +115,8 @@ def register_employee():
 @app.route('/auth/login_employee', methods=['POST'])
 def login_employee():
 	data = request.get_json()
+	if 'email' not in data or 'password' not in data:
+		return jsonify({'message': 'Invalid parameters'}), 401
 	email = data.get('email')
 	password = data.get('password')
 
