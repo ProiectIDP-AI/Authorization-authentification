@@ -76,10 +76,11 @@ def register_admin():
 
 	data = request.get_json()
 	name = data.get('name')
-	data['password'] = generate_password_hash(data['password'], method='pbkdf2:sha256')
+	password = generate_password_hash(data['password'], method='pbkdf2:sha256')
 
 	if name == 'admin':  # If the name matches, update the admin
-		response = requests.put(url_io_admin, headers=request.headers, data=request.data).json()
+		pass_data = {'password': password}
+		requests.put(url_io_admin, headers=request.headers, json=pass_data)
 		return jsonify({'message': 'Admin updated successfully'})
 	return jsonify({'message': 'Admin not found'}), 404
 
@@ -153,7 +154,7 @@ def login_employee():
 				'id': emp['id'],  # The id of the employee is stored in the token
 				'email': email,
 				'type': 'employee',  # The type of the user is 'employee
-				'exp': datetime.utcnow() + timedelta(seconds=30)  # The token will expire after 24 hours
+				'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
 			}, SECRET_KEY, algorithm='HS256')
 			return jsonify({'token': token})
 	return jsonify({'message': 'Invalid email or password'}), 401
