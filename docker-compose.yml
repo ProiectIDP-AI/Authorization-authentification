@@ -12,10 +12,15 @@ services:
       - redis_data:/data
 
   io:
-    image: io-flask
+    image: andreiionut1411/io:latest
     container_name: io
     networks:
       - backend
+    logging:
+        driver: loki
+        options:
+            loki-url: http://host.docker.internal:3100/loki/api/v1/push
+            loki-external-labels: job=myjob,owner=radu,environment=development
     ports:
       - "5000:5000"
     volumes:
@@ -28,7 +33,7 @@ services:
   
 
   auth:
-    image: andradacojocaru25/authorization-authentification:latest
+    image: andradacojocaru25/auth:latest
     container_name: auth
     networks:
       - backend
@@ -42,8 +47,11 @@ services:
       - REDIS_PORT=6379
 
   bl:
-    image: bl
+    image: andreiionut1411/business_logic:latest
     container_name: bl
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
     networks:
       - backend
     ports:
@@ -111,6 +119,40 @@ services:
     depends_on:
       - redis
   
+  node_exporter:
+    image: prom/node-exporter
+    deploy:
+        mode: global
+    volumes:
+        - /proc:/host/proc:ro
+        - /sys:/host/sys:ro
+        - /:/rootfs:ro
+    command:
+        - '--path.procfs=/host/proc'
+        - '--path.rootfs=/rootfs'
+        - '--path.sysfs=/host/sys'
+        - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+        - 9100:9100
+    networks:
+        - backend
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    deploy:
+        mode: global
+    volumes:
+        - /:/rootfs:ro
+        - /var/run:/var/run:ro
+        - /sys:/sys:ro
+        - /var/lib/docker/:/var/lib/docker:ro
+        - /dev/disk:/dev/disk/:ro
+    ports:
+        - 8080:8080
+    networks:
+        - backend
+
+  
   loki:
     image: grafana/loki:latest
     container_name: loki
@@ -120,7 +162,24 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./loki/loki.yml:/etc/loki/local-config.yaml
+      - ./loki/loki.yml:/etc/config/loki.yml
+      - ../configs/loki/wal:/wal
+    entrypoint:
+      - /usr/bin/loki
+      - -config.file=/etc/config/loki.yml
+
+  promtail:
+    image:  grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./promtail/promtail.yml:/promtail/promtail.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/promtail/promtail.yml
+    depends_on:
+      - loki
+    networks:
+      - backend
 
 networks:
   backend:

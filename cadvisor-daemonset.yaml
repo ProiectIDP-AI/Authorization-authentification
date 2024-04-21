@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml
+    kompose.version: 1.32.0 (765fde254)
+  labels:
+    io.kompose.service: cadvisor
+  name: cadvisor
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: cadvisor
+  template:
+    metadata:
+      labels:
+        io.kompose.network/authorization-authentification-backend: "true"
+        io.kompose.service: cadvisor
+    spec:
+      containers:
+        - image: gcr.io/cadvisor/cadvisor
+          name: cadvisor
+          ports:
+            - containerPort: 8080
+              hostPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /rootfs
+              name: cadvisor-claim0
+              readOnly: true
+            - mountPath: /var/run
+              name: cadvisor-claim1
+              readOnly: true
+            - mountPath: /sys
+              name: cadvisor-claim2
+              readOnly: true
+            - mountPath: /var/lib/docker
+              name: cadvisor-claim3
+              readOnly: true
+            - mountPath: /dev/disk
+              name: cadvisor-claim4
+              readOnly: true
+      restartPolicy: Always
+      volumes:
+        - name: cadvisor-claim0
+          persistentVolumeClaim:
+            claimName: cadvisor-claim0
+            readOnly: true
+        - name: cadvisor-claim1
+          persistentVolumeClaim:
+            claimName: cadvisor-claim1
+            readOnly: true
+        - name: cadvisor-claim2
+          persistentVolumeClaim:
+            claimName: cadvisor-claim2
+            readOnly: true
+        - name: cadvisor-claim3
+          persistentVolumeClaim:
+            claimName: cadvisor-claim3
+            readOnly: true
+        - name: cadvisor-claim4
+          persistentVolumeClaim:
+            claimName: cadvisor-claim4
+            readOnly: true

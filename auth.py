@@ -8,44 +8,51 @@ import os
 import requests
 
 app = Flask(__name__)
-r = Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')), decode_responses=True)
 url_io = "http://io:5000/io"
+url_pass = "http://io:5000/pass"
 
 SECRET_KEY = 'ratonii_maleficius'
 
 @app.route('/auth/register_company', methods=['PUT'])
 def register_company():
 	data = request.get_json()
-	if 'email' not in data or 'password' not in data:
+	if 'email' not in data or 'password' not in data or len(data['password']) == 0:
 		return jsonify({'message': 'Invalid parameters'}), 401
 	email = data.get('email')
-	company_ids = r.smembers('comp_ids')  # Get all company ids
+	url_io_comp = url_io + '/company'
+	response = requests.get(url_io_comp, headers=request.headers, data=request.data).json()
+
 	if 'password' in data:
 		data['password'] = generate_password_hash(data['password'], method='pbkdf2:sha256')
-	for id in company_ids:
-		if r.hget(id, 'email') == email:  # If the email matches, update the company
-			r.hset(id, 'password', data['password'])
+	else:
+		return jsonify({'error': 'No password giver'}), 401
+
+	for company in response:
+		if company['email'] == email:
+			url_io_comp = url_pass + '/company/' + company['id']
+			pass_data = {'password': data['password']}
+			response = requests.put(url_io_comp, headers=request.headers, json=pass_data)
 			return jsonify({'message': 'Company updated successfully'})
+
 	return jsonify({'message': 'Company not found'}), 404
 
 @app.route('/auth/login_company', methods=['POST'])
 def login_company():
 	data = request.get_json()
-	if 'email' not in data or 'password' not in data:
+	if 'email' not in data or 'password' not in data or len(data['password']) == 0:
 		return jsonify({'message': 'Invalid parameters'}), 401
 	email = data.get('email')
 	password = data.get('password')
+	url_io_comp = url_pass + '/company'
+	response = requests.get(url_io_comp, headers=request.headers, data=request.data).json()
 
-	# Get all company ids
-	company_ids = r.smembers('comp_ids')
+	for company in response:
+		if company['password'] == "":
+			continue
 
-	# Check each company
-	for id in company_ids:
-		company_details = r.hgetall(id)
-		if company_details['email'] == email and check_password_hash(company_details['password'], password):
-			# Create a JWT token
+		if company['email'] == email and check_password_hash(company['password'], password):
 			token = jwt.encode({
-				'id': id,  # The id of the company is stored in the token
+				'id': company['id'],  # The id of the company is stored in the token
 				'email': email,
 				'type': 'company',  # The type of the user is 'company
 				'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
@@ -53,45 +60,53 @@ def login_company():
 			return jsonify({'token': token})
 	return jsonify({'message': 'Invalid email or password'}), 401
 
+
 @app.route('/auth/register_admin', methods=['PUT'])
 def register_admin():
-	if r.hexists('admin', 'password'):
-		return jsonify({'message': 'Not allowed'}), 403
+	data = request.get_json()
+	url_io_admin = url_pass + '/admin'
+
 	if 'name' not in data or 'password' not in data:
 		return jsonify({'message': 'Invalid parameters'}), 401
 
+	response = requests.get(url_io_admin, headers=request.headers, data=request.data).json()
+
+	if 'password' in response:
+		return jsonify({'message': 'Not allowed'}), 403
+
 	data = request.get_json()
 	name = data.get('name')
-	data['password'] = generate_password_hash(data['password'], method='pbkdf2:sha256')
+	password = generate_password_hash(data['password'], method='pbkdf2:sha256')
 
-	if r.hget('admin', 'name') == 'admin':  # If the name matches, update the admin
-		r.hset('admin', mapping={
-			'name': name,
-			'password': data['password'],
-			'id': 0
-		})
+	if name == 'admin':  # If the name matches, update the admin
+		pass_data = {'password': password}
+		requests.put(url_io_admin, headers=request.headers, json=pass_data)
 		return jsonify({'message': 'Admin updated successfully'})
 	return jsonify({'message': 'Admin not found'}), 404
 
 @app.route('/auth/login_admin', methods=['POST'])
 def login_admin():
 	data = request.get_json()
+	url_io_admin = url_pass + '/admin'
 	if 'name' not in data or 'password' not in data:
 		return jsonify({'message': 'Invalid parameters'}), 401
 	name = data.get('name')
 	password = data.get('password')
 
 	# Get the admin's details from the database
-	admin_details = r.hgetall('admin')
+	response = requests.get(url_io_admin, headers=request.headers, data=request.data).json()
+
+	if 'password' not in response:
+		return jsonify({'error': 'Not registered'})
 
 	# Check if the admin exists and the password is correct
-	if admin_details and check_password_hash(admin_details['password'], password):
+	if check_password_hash(response['password'], password):
 		# Create a JWT token
 		token = jwt.encode({
-			'id': admin_details['id'],  # The id of the admin is '0
+			'id': response['id'],
 			'name': name,
 			'type': 'admin',  # The type of the user is 'admin'
-			'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 30 minutes
+			'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
 		}, SECRET_KEY, algorithm='HS256')
 		return jsonify({'token': token})
 	return jsonify({'message': 'Invalid name or password'}), 401
@@ -100,15 +115,19 @@ def login_admin():
 @app.route('/auth/register_employee', methods=['PUT'])
 def register_employee():
 	data = request.get_json()
-	if 'email' not in data or 'password' not in data:
+	url_io_emp = url_io + '/employee'
+	if 'email' not in data or 'password' not in data or len(data['password']) == 0:
 		return jsonify({'message': 'Invalid parameters'}), 401
 	email = data.get('email')
-	employee_ids = r.smembers('emp_ids') 
 	data['password'] = generate_password_hash(data['password'], method='pbkdf2:sha256')
 
-	for id in employee_ids:
-		if r.hget(id, 'email') == email:  # If the email matches, update the employee
-			r.hset(id, 'password', data['password'])
+	response = requests.get(url_io_emp, headers=request.headers, data=request.data).json()
+
+	for emp in response:
+		if emp['email'] == email:  # If the email matches, update the employee
+			url_io_emp = url_pass + '/employee/' + emp['id']
+			pass_data = {'password': data['password']}
+			response = requests.put(url_io_emp, headers=request.headers, json=pass_data)
 			return jsonify({'message': 'Employee updated successfully'})
 	return jsonify({'message': 'Employee not found'}), 404
 
@@ -121,15 +140,18 @@ def login_employee():
 	password = data.get('password')
 
 	# Get the employee's details from the database
-	employee_ids = r.smembers('emp_ids')
+	url_io_emp = url_pass + '/employee'
+	response = requests.get(url_io_emp, headers=request.headers, data=request.data).json()
 
 	# Check if the employee exists and the password is correct
-	for id in employee_ids:
-		employee_details = r.hgetall(id)
-		if employee_details['email'] == email and check_password_hash(employee_details['password'], password):
+	for emp in response:
+		if emp['password'] == "":
+			continue
+
+		if emp['email'] == email and check_password_hash(emp['password'], password):
 			# Create a JWT token
 			token = jwt.encode({
-				'id': id,  # The id of the employee is stored in the token
+				'id': emp['id'],  # The id of the employee is stored in the token
 				'email': email,
 				'type': 'employee',  # The type of the user is 'employee
 				'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
@@ -140,6 +162,21 @@ def login_employee():
 
 def verify_client_type(data, client_type, id):
 	is_ok = False
+
+	# Verify that the company still exists, and it doesn't happen that a company
+	# we no longer have a contract with, but still has a valid token, to be able
+	# to have access to our service.
+	if data['type'] == 'company':
+		url_io_comp = url_io + '/company/' + data['id']
+		response = requests.get(url_io_comp, headers=request.headers, data=request.data)
+		if response.status_code != 200:
+			return False
+
+	if data['type'] == 'employee':
+		url_io_emp = url_io + '/employee/' + data['id']
+		response = requests.get(url_io_emp, headers=request.headers, data=request.data)
+		if response.status_code != 200:
+			return False
 
 	if client_type == 'all':
 		return True
@@ -196,6 +233,78 @@ def decode_token():
 		return jsonify(data), 200
 	except:
 		return jsonify({'message': 'Token is invalid', 'token': token}), 401
+
+
+@app.route("/auth/change_password", methods=["POST"])
+def change_password():
+	data = request.get_json()
+
+	if 'password' not in data:
+		return jsonify({'message': 'Password is missing'}), 401
+
+	password = generate_password_hash(data['password'], method='pbkdf2:sha256')
+
+	if 'Authorization' in request.headers:
+		token = request.headers['Authorization'].split(" ")[1]
+	if not token:
+		return jsonify({'message': 'Token is missing'}), 401
+
+
+	try:
+		data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+	except:
+		return jsonify({'message': 'Token is invalid', 'token': token}), 401
+
+	if data['type'] == 'admin':
+		url = url_pass + '/admin'
+		pass_data = {'password': password}
+		requests.put(url, headers=request.headers, json=pass_data)
+
+		new_token = jwt.encode({
+			'id':'admin_id_1',
+			'name': 'admin',
+			'type': 'admin',  # The type of the user is 'admin'
+			'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
+		}, SECRET_KEY, algorithm='HS256')
+		return jsonify({'token': new_token})
+	elif data['type'] == 'company':
+		email = data.get('email')
+		url = url_pass + '/company'
+
+		response = requests.get(url, headers=request.headers, data=request.data).json()
+
+		for company in response:
+			if company['email'] == email:  # If the email matches, update the company
+				url = url_pass + '/company/' + company['id']
+				pass_data = {'password': password}
+				response = requests.put(url, headers=request.headers, json=pass_data)
+				new_token = jwt.encode({
+					'id': data['id'],
+					'email': data['email'],
+					'type': data['type'],  # The type of the user
+					'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
+				}, SECRET_KEY, algorithm='HS256')
+				return jsonify({'token': new_token})
+		return jsonify({'message': 'Company not found'}), 404
+
+	else:
+		email = data.get('email')
+		url = url_pass + '/employee'
+		response = requests.get(url, headers=request.headers, data=request.data).json()
+
+		for emp in response:
+			if emp['email'] == email:  # If the email matches, update the company
+				url = url_pass + '/employee/' + emp['id']
+				pass_data = {'password': password}
+				response = requests.put(url, headers=request.headers, json=pass_data)
+				new_token = jwt.encode({
+					'id': data['id'],
+					'email': data['email'],
+					'type': data['type'],  # The type of the user
+					'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
+				}, SECRET_KEY, algorithm='HS256')
+				return jsonify({'token': new_token})
+		return jsonify({'message': 'Employee not found'}), 404
 
 
 if __name__ == '__main__':

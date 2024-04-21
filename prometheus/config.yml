@@ -4,12 +4,31 @@ scrape_configs:
     static_configs:
       - targets: ['prometheus:9090']
 
-  - job_name: 'docker'
-    scrape_interval: 5s
+  - job_name: 'node resources'
     static_configs:
-      - targets: ['host.docker.internal:9323']
-  
-  - job_name: 'my_application'
-    scrape_interval: 5s
+      - targets: ['node_exporter:9100']
+    params:
+      collect[]:
+        - cpu
+        - meminfo
+        - diskstats
+        - netdev
+        - netstat
+
+  - job_name: 'node storage'
     static_configs:
-      - targets: ['io:5000']
+      - targets: ['node_exporter:9100']
+    params:
+      collect[]:
+        - filefd
+        - filesystem
+        - xfs
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: 'io'
+    static_configs:
+      - targets: ['io:8000']
+

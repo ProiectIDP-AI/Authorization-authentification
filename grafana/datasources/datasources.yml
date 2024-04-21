@@ -6,3 +6,11 @@ datasources:
     uid: "edj4gdtofti4gd"
     access: proxy
     url: "http://prometheus:9090"
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    version: 1
+    editable: false
+    isDefault: true
