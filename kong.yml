@@ -1,0 +1,27 @@
+_format_version: "2.1"
+
+services:
+  - name: bl
+    url: http://bl:7000/bl
+    routes:
+      - name: business-logic
+        paths:
+          - /company
+          - /employee
+          - /book
+        strip_path: false
+
+  - name: auth
+    url: http://auth:6000/auth
+    routes:
+      - name: authorization
+        paths:
+          - /register_company
+          - /login_company
+          - /register_admin
+          - /login_admin
+          - /register_employee
+          - /login_employee
+          - /change_password
+        strip_path: false
+
