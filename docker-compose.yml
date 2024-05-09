@@ -91,7 +91,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.role == manager
     depends_on:
       - redis
     networks:
@@ -143,10 +143,10 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     deploy:
-      replicas: 2
+      replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.role == manager
     networks:
       - backend
     ports:
