@@ -35,6 +35,11 @@ services:
   auth:
     image: andreiionut1411/auth:latest
     container_name: auth
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
     networks:
       - backend
     ports:
@@ -94,6 +99,7 @@ services:
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
       - KONG_DECLARATIVE_CONFIG=/etc/kong/kong.yml
     deploy:
+      replicas: 1
       placement:
         constraints:
           - node.role == manager
