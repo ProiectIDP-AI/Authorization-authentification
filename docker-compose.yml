@@ -3,6 +3,11 @@ version: "3.8"
 services:
   redis:
     image: redislabs/redismod
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
     container_name: redis
     networks:
       - backend
@@ -14,6 +19,11 @@ services:
   io:
     image: andreiionut1411/io:latest
     container_name: io
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
     networks:
       - backend
     # logging:
@@ -54,6 +64,11 @@ services:
   bl:
     image: andreiionut1411/business_logic:latest
     container_name: bl
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
     labels:
       logging: "promtail"
       logging_jobname: "containerlogs"
@@ -72,6 +87,11 @@ services:
   redisinsight:
     image: redis/redisinsight:latest
     container_name: redisinsight
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
     depends_on:
       - redis
     networks:
