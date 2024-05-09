@@ -16,11 +16,11 @@ services:
     container_name: io
     networks:
       - backend
-    logging:
-        driver: loki
-        options:
-            loki-url: http://host.docker.internal:3100/loki/api/v1/push
-            loki-external-labels: job=myjob,owner=radu,environment=development
+    # logging:
+    #     driver: loki
+    #     options:
+    #         loki-url: http://host.docker.internal:3100/loki/api/v1/push
+    #         loki-external-labels: job=myjob,owner=radu,environment=development
     ports:
       - "5000:5000"
     volumes:
@@ -30,10 +30,10 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-  
+
 
   auth:
-    image: andradacojocaru25/auth:latest
+    image: andreiionut1411/auth:latest
     container_name: auth
     networks:
       - backend
@@ -79,10 +79,12 @@ services:
     networks:
       - backend
     ports:
-      - "8000:8000"
+      - "80:8000"
       - "8443:8443"
       - "8001:8001"
       - "8444:8444"
+    volumes:
+      - ./kong.yml:/etc/kong/kong.yml  # Mount Kong configuration file
     environment:
       - KONG_DATABASE=off
       - KONG_PROXY_ACCESS_LOG=/dev/stdout
@@ -90,6 +92,7 @@ services:
       - KONG_PROXY_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+      - KONG_DECLARATIVE_CONFIG=/etc/kong/kong.yml
     deploy:
       placement:
         constraints:
@@ -118,7 +121,7 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - redis
-  
+
   node_exporter:
     image: prom/node-exporter
     deploy:
@@ -152,7 +155,7 @@ services:
     networks:
         - backend
 
-  
+
   loki:
     image: grafana/loki:latest
     container_name: loki
