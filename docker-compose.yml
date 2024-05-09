@@ -4,10 +4,6 @@ services:
   redis:
     image: redislabs/redismod
     container_name: redis
-    deploy:
-      placement:
-        constraints:
-          - node.labels.role == worker
     networks:
       - backend
     ports:
@@ -18,10 +14,6 @@ services:
   io:
     image: andreiionut1411/io:latest
     container_name: io
-    deploy:
-      placement:
-        constraints:
-          - node.labels.role == worker
     networks:
       - backend
     # logging:
@@ -43,10 +35,6 @@ services:
   auth:
     image: andreiionut1411/auth:latest
     container_name: auth
-    deploy:
-      placement:
-        constraints:
-          - node.labels.role == worker
     networks:
       - backend
     ports:
@@ -61,10 +49,6 @@ services:
   bl:
     image: andreiionut1411/business_logic:latest
     container_name: bl
-    deploy:
-      placement:
-        constraints:
-          - node.labels.role == worker
     labels:
       logging: "promtail"
       logging_jobname: "containerlogs"
@@ -83,10 +67,6 @@ services:
   redisinsight:
     image: redis/redisinsight:latest
     container_name: redisinsight
-    deploy:
-      placement:
-        constraints:
-          - node.labels.role == worker
     depends_on:
       - redis
     networks:
@@ -96,10 +76,6 @@ services:
 
   kong:
     image: kong:latest
-    deploy:
-      placement:
-        constraints:
-          - node.labels.role == manager
     networks:
       - backend
     ports:
@@ -117,14 +93,14 @@ services:
       - KONG_ADMIN_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
       - KONG_DECLARATIVE_CONFIG=/etc/kong/kong.yml
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
-    deploy:
-      placement:
-        constraints:
-          - node.labels.role == worker
     networks:
       - backend
     ports:
@@ -135,10 +111,6 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
-    deploy:
-      placement:
-        constraints:
-          - node.labels.role == worker
     networks:
       - backend
     ports:
@@ -187,8 +159,6 @@ services:
   loki:
     image: grafana/loki:latest
     container_name: loki
-    deploy:
-        mode: global
     user: root
     networks:
       - backend
