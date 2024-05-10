@@ -179,9 +179,6 @@ services:
       - agent_network
     deploy:
       mode: global
-      placement:
-        constraints:
-          - node.role == worker
 
   portainer:
     image: portainer/portainer-ee:2.19.4
