@@ -26,11 +26,6 @@ services:
           - node.role == worker
     networks:
       - backend
-    # logging:
-    #     driver: loki
-    #     options:
-    #         loki-url: http://host.docker.internal:3100/loki/api/v1/push
-    #         loki-external-labels: job=myjob,owner=radu,environment=development
     ports:
       - "5000:5000"
     volumes:
@@ -175,64 +170,49 @@ services:
         - 9100:9100
     networks:
         - backend
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor
-    deploy:
-        mode: global
+  agent:
+    image: portainer/agent:2.19.4
     volumes:
-        - /:/rootfs:ro
-        - /var/run:/var/run:ro
-        - /sys:/sys:ro
-        - /var/lib/docker/:/var/lib/docker:ro
-        - /dev/disk:/dev/disk/:ro
-    ports:
-        - 8080:8080
-    networks:
-        - backend
-
-
-  loki:
-    image: grafana/loki:latest
-    container_name: loki
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-    user: root
-    networks:
-      - backend
-    ports:
-      - "3100:3100"
-    volumes:
-      - ./loki/loki.yml:/etc/config/loki.yml
-      - ../configs/loki/wal:/wal
-    entrypoint:
-      - /usr/bin/loki
-      - -config.file=/etc/config/loki.yml
-
-  promtail:
-    image:  grafana/promtail:latest
-    container_name: promtail
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-    volumes:
-      - ./promtail/promtail.yml:/promtail/promtail.yml
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
-    command: -config.file=/promtail/promtail.yml
-    depends_on:
-      - loki
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
     networks:
-      - backend
+      - agent_network
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.role == worker
+
+  portainer:
+    image: portainer/portainer-ee:2.19.4
+    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    ports:
+      - "9443:9443"
+      - "9000:9000"
+      - "8003:8003"
+    volumes:
+      - portainer_data:/data
+    networks:
+      - agent_network
+    environment:
+    - PORTAINER_ADMIN_USERNAME=admin
+    - PORTAINER_ADMIN_PASSWORD=Admin12345@#
+    - PORTAINER_LICENSE=3-MSc5sfRYQuzeP9sU9cvw2xQVX6pkBrYC0CmbADfX1X630uFWDC9gtZ7FFYTrL6jSsHZbCC2f
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
 
 networks:
   backend:
+  agent_network:
+    driver: overlay
+    attachable: true
 
 volumes:
   redis_data:
   grafana_data:
+  portainer_data:
