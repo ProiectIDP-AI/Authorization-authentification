@@ -10,7 +10,7 @@ services:
           - node.role == worker
     container_name: redis
     networks:
-      - backend
+      - redis_network
     ports:
       - '6379:6379'
     volumes:
@@ -26,6 +26,7 @@ services:
           - node.role == worker
     networks:
       - backend
+      - redis_network
     ports:
       - "5000:5000"
     volumes:
@@ -90,7 +91,7 @@ services:
     depends_on:
       - redis
     networks:
-      - backend
+      - redis_network
     ports:
       - '5540:5540'
 
@@ -201,6 +202,7 @@ services:
 
 networks:
   backend:
+  redis_network:
   agent_network:
     driver: overlay
     attachable: true
