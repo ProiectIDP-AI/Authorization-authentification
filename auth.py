@@ -90,6 +90,7 @@ def login_admin():
 	url_io_admin = url_pass + '/admin'
 	if 'name' not in data or 'password' not in data:
 		return jsonify({'message': 'Invalid parameters'}), 401
+	print("Test")
 	name = data.get('name')
 	password = data.get('password')
 
