@@ -24,10 +24,6 @@ services:
       - portainer_data:/data
     networks:
       - agent_network
-    environment:
-    - PORTAINER_ADMIN_USERNAME=admin
-    - PORTAINER_ADMIN_PASSWORD=Admin12345@#
-    - PORTAINER_LICENSE=3-MSc5sfRYQuzeP9sU9cvw2xQVX6pkBrYC0CmbADfX1X630uFWDC9gtZ7FFYTrL6jSsHZbCC2f
     deploy:
       mode: replicated
       replicas: 1
