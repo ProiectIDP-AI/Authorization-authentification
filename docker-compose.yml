@@ -28,7 +28,7 @@ services:
       - backend
       - redis_network
     ports:
-      - "5000:5000"
+      - "5000"
     volumes:
       - .:/io
     depends_on:
@@ -49,7 +49,7 @@ services:
     networks:
       - backend
     ports:
-      - "6000:6000"
+      - "6000"
     depends_on:
       - redis
       - io
@@ -71,7 +71,7 @@ services:
     networks:
       - backend
     ports:
-      - "7000:7000"
+      - "7000"
     depends_on:
       - redis
       - auth
