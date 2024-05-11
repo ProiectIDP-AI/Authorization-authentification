@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml
+    kompose.version: 1.32.0 (765fde254)
+  labels:
+    io.kompose.service: io
+  name: io
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: io
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yml
+        kompose.version: 1.32.0 (765fde254)
+      labels:
+        io.kompose.network/authorization-authentification-backend: "true"
+        io.kompose.service: io
+    spec:
+      containers:
+        - env:
+            - name: REDIS_HOST
+              value: redis
+            - name: REDIS_PORT
+              value: "6379"
+          image: io-flask
+          name: io
+          ports:
+            - containerPort: 5000
+              hostPort: 5000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /io
+              name: io-claim0
+      restartPolicy: Always
+      volumes:
+        - name: io-claim0
+          persistentVolumeClaim:
+            claimName: io-claim0

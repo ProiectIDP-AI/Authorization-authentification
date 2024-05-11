@@ -1,0 +1,211 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redislabs/redismod
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+    container_name: redis
+    networks:
+      - backend
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  io:
+    image: andreiionut1411/io:latest
+    container_name: io
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+    networks:
+      - backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/io
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+
+  auth:
+    image: andreiionut1411/auth:latest
+    container_name: auth
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+    networks:
+      - backend
+    ports:
+      - "6000:6000"
+    depends_on:
+      - redis
+      - io
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+  bl:
+    image: andreiionut1411/business_logic:latest
+    container_name: bl
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    networks:
+      - backend
+    ports:
+      - "7000:7000"
+    depends_on:
+      - redis
+      - auth
+      - io
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    depends_on:
+      - redis
+    networks:
+      - backend
+    ports:
+      - '5540:5540'
+
+  kong:
+    image: kong:latest
+    networks:
+      - backend
+    ports:
+      - "80:8000"
+      - "8443:8443"
+      - "8001:8001"
+      - "8444:8444"
+    volumes:
+      - ./kong.yml:/etc/kong/kong.yml  # Mount Kong configuration file
+    environment:
+      - KONG_DATABASE=off
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+      - KONG_DECLARATIVE_CONFIG=/etc/kong/kong.yml
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+    networks:
+      - backend
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - redis
+
+  node_exporter:
+    image: prom/node-exporter
+    deploy:
+        mode: global
+    volumes:
+        - /proc:/host/proc:ro
+        - /sys:/host/sys:ro
+        - /:/rootfs:ro
+    command:
+        - '--path.procfs=/host/proc'
+        - '--path.rootfs=/rootfs'
+        - '--path.sysfs=/host/sys'
+        - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+        - 9100:9100
+    networks:
+        - backend
+  agent:
+    image: portainer/agent:2.11.1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - agent_network
+    deploy:
+      mode: global
+
+  portainer:
+    image: portainer/portainer-ce:2.11.1
+    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    ports:
+      - "9443:9443"
+      - "9000:9000"
+      - "8003:8003"
+    volumes:
+      - portainer_data:/data
+    networks:
+      - agent_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+
+networks:
+  backend:
+  agent_network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  redis_data:
+  grafana_data:
+  portainer_data:

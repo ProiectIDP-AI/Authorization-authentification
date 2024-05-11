@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml
+    kompose.version: 1.32.0 (765fde254)
+  labels:
+    io.kompose.service: node-exporter
+  name: node-exporter
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: node-exporter
+  template:
+    metadata:
+      labels:
+        io.kompose.network/authorization-authentification-backend: "true"
+        io.kompose.service: node-exporter
+    spec:
+      containers:
+        - args:
+            - --path.procfs=/host/proc
+            - --path.rootfs=/rootfs
+            - --path.sysfs=/host/sys
+            - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($()|/)
+          image: prom/node-exporter
+          name: node-exporter
+          ports:
+            - containerPort: 9100
+              hostPort: 9100
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /host/proc
+              name: node-exporter-claim0
+              readOnly: true
+            - mountPath: /host/sys
+              name: node-exporter-claim1
+              readOnly: true
+            - mountPath: /rootfs
+              name: node-exporter-claim2
+              readOnly: true
+      restartPolicy: Always
+      volumes:
+        - name: node-exporter-claim0
+          persistentVolumeClaim:
+            claimName: node-exporter-claim0
+            readOnly: true
+        - name: node-exporter-claim1
+          persistentVolumeClaim:
+            claimName: node-exporter-claim1
+            readOnly: true
+        - name: node-exporter-claim2
+          persistentVolumeClaim:
+            claimName: node-exporter-claim2
+            readOnly: true
