@@ -90,7 +90,6 @@ def login_admin():
 	url_io_admin = url_pass + '/admin'
 	if 'name' not in data or 'password' not in data:
 		return jsonify({'message': 'Invalid parameters'}), 401
-	print("Test")
 	name = data.get('name')
 	password = data.get('password')
 
@@ -109,7 +108,7 @@ def login_admin():
 			'type': 'admin',  # The type of the user is 'admin'
 			'exp': datetime.utcnow() + timedelta(hours=24)  # The token will expire after 24 hours
 		}, SECRET_KEY, algorithm='HS256')
-		return jsonify({'token': token})
+		return jsonify({'token': token}), 201
 	return jsonify({'message': 'Invalid name or password'}), 401
 
 
