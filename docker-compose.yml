@@ -202,7 +202,11 @@ services:
 
 networks:
   backend:
+    driver: overlay
+    attachable: true
   redis_network:
+    driver: overlay
+    attachable: true
   agent_network:
     driver: overlay
     attachable: true
