@@ -129,7 +129,7 @@ services:
         constraints:
           - node.role == worker
     networks:
-      - backend
+      - monitor_network
     ports:
       - "9090:9090"
     volumes:
@@ -144,7 +144,7 @@ services:
         constraints:
           - node.role == manager
     networks:
-      - backend
+      - monitor_network
     ports:
       - "3000:3000"
     volumes:
@@ -170,7 +170,7 @@ services:
     ports:
         - 9100:9100
     networks:
-        - backend
+        - monitor_network
   agent:
     image: portainer/agent:2.11.1
     volumes:
@@ -203,6 +203,7 @@ services:
 networks:
   backend:
   redis_network:
+  monitor_network:
   agent_network:
     driver: overlay
     attachable: true
