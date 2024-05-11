@@ -10,7 +10,7 @@ services:
           - node.role == worker
     container_name: redis
     networks:
-      - redis_network
+      - backend
     ports:
       - '6379:6379'
     volumes:
@@ -25,7 +25,7 @@ services:
         constraints:
           - node.role == worker
     networks:
-      - io_network
+      - backend
     ports:
       - "5000:5000"
     volumes:
@@ -46,7 +46,7 @@ services:
         constraints:
           - node.role == worker
     networks:
-      - auth_network
+      - backend
     ports:
       - "6000:6000"
     depends_on:
@@ -68,7 +68,7 @@ services:
       logging: "promtail"
       logging_jobname: "containerlogs"
     networks:
-      - bl_network
+      - backend
     ports:
       - "7000:7000"
     depends_on:
@@ -90,14 +90,14 @@ services:
     depends_on:
       - redis
     networks:
-      - redisinsight_network
+      - backend
     ports:
       - '5540:5540'
 
   kong:
     image: kong:latest
     networks:
-      - kong_network
+      - backend
     ports:
       - "80:8000"
       - "8443:8443"
@@ -128,7 +128,7 @@ services:
         constraints:
           - node.role == worker
     networks:
-      - prometheus_network
+      - backend
     ports:
       - "9090:9090"
     volumes:
@@ -143,7 +143,7 @@ services:
         constraints:
           - node.role == manager
     networks:
-      - grafana_network
+      - backend
     ports:
       - "3000:3000"
     volumes:
@@ -169,7 +169,7 @@ services:
     ports:
         - 9100:9100
     networks:
-        - node_exporter_network
+        - backend
   agent:
     image: portainer/agent:2.11.1
     volumes:
@@ -190,7 +190,7 @@ services:
     volumes:
       - portainer_data:/data
     networks:
-      - portainer_network
+      - agent_network
     deploy:
       mode: replicated
       replicas: 1
@@ -200,37 +200,8 @@ services:
 
 
 networks:
-  redis_network:
-    driver: overlay
-    attachable: true
-  io_network:
-    driver: overlay
-    attachable: true
-  auth_network:
-    driver: overlay
-    attachable: true
-  bl_network:
-    driver: overlay
-    attachable: true
-  redisinsight_network:
-    driver: overlay
-    attachable: true
-  kong_network:
-    driver: overlay
-    attachable: true
-  prometheus_network:
-    driver: overlay
-    attachable: true
-  grafana_network:
-    driver: overlay
-    attachable: true
-  node_exporter_network:
-    driver: overlay
-    attachable: true
+  backend:
   agent_network:
-    driver: overlay
-    attachable: true
-  portainer_network:
     driver: overlay
     attachable: true
 
