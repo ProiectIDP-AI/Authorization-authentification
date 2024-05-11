@@ -27,8 +27,6 @@ services:
     networks:
       - backend
       - redis_network
-    ports:
-      - "5000:5000"
     volumes:
       - .:/io
     depends_on:
@@ -48,8 +46,6 @@ services:
           - node.role == worker
     networks:
       - backend
-    ports:
-      - "6000:6000"
     depends_on:
       - redis
       - io
@@ -70,8 +66,6 @@ services:
       logging_jobname: "containerlogs"
     networks:
       - backend
-    ports:
-      - "7000:7000"
     depends_on:
       - redis
       - auth
@@ -129,7 +123,7 @@ services:
         constraints:
           - node.role == worker
     networks:
-      - backend
+      - monitor_network
     ports:
       - "9090:9090"
     volumes:
@@ -144,7 +138,7 @@ services:
         constraints:
           - node.role == manager
     networks:
-      - backend
+      - monitor_network
     ports:
       - "3000:3000"
     volumes:
@@ -170,7 +164,7 @@ services:
     ports:
         - 9100:9100
     networks:
-        - backend
+        - monitor_network
   agent:
     image: portainer/agent:2.11.1
     volumes:
@@ -202,11 +196,8 @@ services:
 
 networks:
   backend:
-    driver: overlay
-    attachable: true
   redis_network:
-    driver: overlay
-    attachable: true
+  monitor_network:
   agent_network:
     driver: overlay
     attachable: true
