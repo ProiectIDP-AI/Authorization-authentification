@@ -15,11 +15,6 @@ services:
       - '6379:6379'
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 1000
 
   io:
     image: andreiionut1411/io:latest
@@ -36,8 +31,7 @@ services:
     volumes:
       - .:/io
     depends_on:
-      redis:
-        condition: service_healthy
+      - redis
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
