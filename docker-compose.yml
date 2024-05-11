@@ -27,8 +27,6 @@ services:
     networks:
       - backend
       - redis_network
-    ports:
-      - "5000"
     volumes:
       - .:/io
     depends_on:
@@ -48,8 +46,6 @@ services:
           - node.role == worker
     networks:
       - backend
-    ports:
-      - "6000"
     depends_on:
       - redis
       - io
@@ -70,8 +66,6 @@ services:
       logging_jobname: "containerlogs"
     networks:
       - backend
-    ports:
-      - "7000"
     depends_on:
       - redis
       - auth
